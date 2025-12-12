@@ -1,0 +1,153 @@
+/* AdaptiveWeb Styles */
+
+/* Feature 1: Hover Dwell Highlight */
+.aw-highlighted {
+  position: relative;
+  transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  background-color: rgba(255, 235, 59, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.3);
+  border-radius: 4px;
+  z-index: 10;
+}
+
+/* Feature 2: Scroll-Back Auto-Pin Summary */
+.aw-summary-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 200px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 9999;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+
+.aw-summary-box.aw-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.aw-summary-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+
+.aw-close-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+}
+
+.aw-close-btn:hover {
+  color: #000;
+}
+
+.aw-summary-content {
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.aw-read-full-btn {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  float: right;
+}
+
+.aw-read-full-btn:hover {
+  background: #1976D2;
+}
+
+/* Feature 3: Rapid-Skimming TL;DR Mode */
+.aw-tldr-collapsed {
+  position: relative;
+  overflow: hidden;
+  height: auto; 
+  /* We will likely set max-height dynamically or rely on line clamping */
+}
+
+.aw-tldr-content-wrapper {
+  /* Wrapper to handle the truncation visual */
+}
+
+.aw-tldr-read-more {
+  color: #2196F3;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-block;
+  margin-left: 5px;
+  text-decoration: none;
+}
+
+.aw-tldr-read-more:hover {
+  text-decoration: underline;
+}
+
+.aw-tldr-fade {
+  display: inline-block;
+  background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,1) 50%);
+  width: 20px;
+  height: 1em;
+  vertical-align: bottom;
+}
+
+/* Feature 4: Cursor Hesitation Suggestion */
+.aw-suggestion-bubble {
+  position: absolute;
+  min-width: 200px;
+  background: rgba(33, 150, 243, 0.95);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  z-index: 10000;
+  pointer-events: none; /* Initially non-interactive or maybe interactive? PRD says 'Contextual assistance', implies interaction might be needed, but 'Need help finding something?' is a prompt. */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.aw-suggestion-bubble.aw-visible {
+  opacity: 1;
+}
+
+.aw-suggestion-arrow {
+  position: absolute;
+  top: -6px;
+  left: 10px;
+  width: 0; 
+  height: 0; 
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(33, 150, 243, 0.95);
+}
