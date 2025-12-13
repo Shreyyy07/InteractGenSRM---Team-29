@@ -295,7 +295,72 @@
             return links.filter((v, i, a) => a.findIndex(v2 => (v2.url === v.url)) === i);
         }
 
-        // --- Feature 4: Exit Intent ---
+        // --- Feature 4: Cursor Hesitation (Help) ---
+        initCursorHesitation() {
+            let hesitationTimer = null;
+            let lastCoords = { x: 0, y: 0 };
+
+            document.addEventListener('mousemove', (e) => {
+                // Update Coords
+                lastCoords = { x: e.clientX, y: e.clientY };
+
+                // Clear Timer
+                if (hesitationTimer) clearTimeout(hesitationTimer);
+
+                // Remove existing bubble if moving significantly? 
+                // Currently keeping it simple: bubble stays until dismissed or clicked
+
+                // Start Timer (2000ms idle)
+                hesitationTimer = setTimeout(() => {
+                    // Only if no hover effect is currently active (priority to hover)
+                    if (!document.querySelector('.aw-highlight') && !document.querySelector('.aw-hover-light') && !document.querySelector('.aw-hover-dark')) {
+                        this.onCursorHesitation(lastCoords);
+                    }
+                }, 2000);
+            }, { passive: true });
+        }
+
+        onCursorHesitation(coords) {
+            // Check if we already showed it recently to avoid annoyance
+            if (this.hesitationTriggered) return;
+            // Simple throttle: don't show again this session or reset flag after delay
+
+            if (CONFIG.debug) console.log('Detected: Cursor Hesitation at', coords);
+            this.hesitationTriggered = true;
+
+            // Reset trigger after 30s so it can happen again
+            setTimeout(() => this.hesitationTriggered = false, 30000);
+
+            this.ui.showSuggestion(coords, () => {
+                this.onManualHelp();
+            });
+            this.api.log('hesitation', { x: coords.x, y: coords.y });
+        }
+
+        async onManualHelp() {
+            console.log('User accepted help');
+            this.api.log('help_accepted');
+
+            // Broad context: Visible text or Body text
+            const text = document.body.innerText.substring(0, 3000);
+
+            this.ui.showSummary("🤔 Analyzing page context...", true);
+
+            // POST to /api/suggest
+            const res = await fetch(`${CONFIG.serverUrl}/suggest`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            }).then(r => r.json()).catch(e => null);
+
+            if (res && res.suggestions) {
+                this.ui.updateSummaryContent(res.summary, res.suggestions);
+            } else {
+                this.ui.updateSummaryContent("Could not get suggestions.");
+            }
+        }
+
+        // --- Feature 5: Exit Intent ---
         initExitIntent() {
             document.addEventListener('mouseleave', (e) => {
                 if (e.clientY < CONFIG.exitThresholdY) {
@@ -622,85 +687,277 @@
             console.log(msg);
         }
 
-        showTakeaways(summary) {
-            if (document.querySelector('.aw-takeaways')) return;
+        showSuggestion(coords, onAction) {
+            if (document.querySelector('.aw-suggestion-bubble')) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'aw-suggestion-bubble';
+            bubble.innerHTML = `
+                <div class="aw-suggestion-arrow"></div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:14px;">💡 Need a hint?</span>
+                    <button class="aw-help-btn">Suggest Actions</button>
+                    <div class="aw-suggestion-close">&times;</div>
+                </div>
+            `;
+
+            // Inline Styles for Bubble (Injecting class in stylesheet is cleaner but this works for now)
+            Object.assign(bubble.style, {
+                position: 'absolute',
+                left: (coords.x + window.scrollX + 20) + 'px',
+                top: (coords.y + window.scrollY) + 'px',
+                background: '#fff',
+                color: '#333',
+                padding: '8px 12px',
+                borderRadius: '50px', // Pill shape
+                boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                zIndex: '9999',
+                fontFamily: 'sans-serif',
+                border: '1px solid #eee',
+                animation: 'fadeIn 0.3s ease',
+                display: 'flex',
+                alignItems: 'center'
+            });
+
+            // Button Style
+            const btn = bubble.querySelector('.aw-help-btn');
+            Object.assign(btn.style, {
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                padding: '5px 12px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginLeft: '5px'
+            });
+
+            // Close Style
+            const close = bubble.querySelector('.aw-suggestion-close');
+            Object.assign(close.style, {
+                marginLeft: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                color: '#888'
+            });
+
+            document.body.appendChild(bubble);
+
+            // Events
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAction();
+                bubble.remove();
+            };
+
+            close.onclick = (e) => {
+                e.stopPropagation();
+                bubble.remove();
+            };
+
+            // Auto-dismiss after 8 seconds
+            setTimeout(() => {
+                if (bubble.isConnected) bubble.remove();
+            }, 8000);
+        }
+
+        updateSummaryContent(newText, suggestions = []) {
+            if (this.currentSummaryBox) {
+                const contentDiv = this.currentSummaryBox.querySelector('.aw-summary-content');
+
+                let html = `<p>${newText}</p>`;
+                if (suggestions && suggestions.length > 0) {
+                    html += '<div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">';
+                    suggestions.forEach(s => {
+                        // Use inline onclick for simplicity, or add listeners later
+                        html += `<span style="background:#f0f7ff; color:#0066cc; padding:4px 10px; border-radius:12px; font-size:12px; border:1px solid #cce5ff;">${s}</span>`;
+                    });
+                    html += '</div>';
+                }
+
+                if (contentDiv) contentDiv.innerHTML = html;
+            }
+        }
+        showSummary(initialText, isLoading = false) {
+            // Remove existing if any
+            if (this.currentSummaryBox && this.currentSummaryBox.isConnected) {
+                this.currentSummaryBox.remove();
+            }
+
             const box = document.createElement('div');
-            box.className = 'aw-takeaways';
+            box.className = 'aw-takeaways'; // Reuse existing styles
+            this.currentSummaryBox = box;
+
             box.innerHTML = `
-                <h3 style="margin:0 0 10px 0">⚡ Key Takeaways</h3>
-                <p style="font-size: 14px; line-height: 1.5; color: #444;">${summary}</p>
+                <h3 style="margin:0 0 10px 0">⚡ Adaptive Helper</h3>
+                <div class="aw-summary-content">
+                    <p style="font-size: 14px; line-height: 1.5; color: #444;">
+                        ${isLoading ? '<i>' + initialText + '</i>' : initialText}
+                    </p>
+                </div>
                 <div style="text-align:right; margin-top:10px;">
                     <small style="color:#888; cursor:pointer;" id="aw-takeaways-close">Dismiss</small>
                 </div>
             `;
             document.body.appendChild(box);
+
+            box.querySelector('#aw-takeaways-close').onclick = () => {
+                box.remove();
+                this.currentSummaryBox = null;
+            };
+        }
+
+        showTakeaways(summary) {
+            // "Summarize" button output -> Use same box but add expansion logic
+            if (this.currentSummaryBox && this.currentSummaryBox.isConnected) {
+                this.currentSummaryBox.remove();
+            }
+
+            const box = document.createElement('div');
+            box.className = 'aw-takeaways';
+            this.currentSummaryBox = box;
+
+            // Simple truncate for visual cleaness, "Expand" to see full
+            const isLong = summary.length > 300;
+            const displaySummary = isLong ? summary.substring(0, 300) + '...' : summary;
+
+            box.innerHTML = `
+                <h3 style="margin:0 0 10px 0">⚡ Key Takeaways</h3>
+                <div class="aw-summary-content">
+                    <p style="font-size: 14px; line-height: 1.5; color: #444;">${displaySummary}</p>
+                </div>
+                ${isLong ? '<div style="margin-top:5px;"><button id="aw-expand-btn" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-size:12px; font-weight:bold; padding:0;">View Full Context ⬇</button></div>' : ''}
+                <div style="text-align:right; margin-top:10px;">
+                    <small style="color:#888; cursor:pointer;" id="aw-takeaways-close">Dismiss</small>
+                </div>
+            `;
+            document.body.appendChild(box);
+
+            // Expand Logic
+            if (isLong) {
+                box.querySelector('#aw-expand-btn').onclick = (e) => {
+                    e.target.remove();
+                    box.querySelector('.aw-summary-content p').innerText = summary;
+                };
+            }
+
             box.querySelector('#aw-takeaways-close').onclick = () => box.remove();
         }
 
-        // 4. Exit Modal
-        showExitModal(progress, api) {
-            if (document.querySelector('.aw-modal-backdrop')) return;
+        // ... showExitModal is fine ...
+    }
 
-            let title = "Wait!";
-            let text = "Don't miss out.";
-            let btnText = "Stay";
+    class ShortcutsManager {
+        constructor(api) {
+            this.api = api;
+            this.shortcuts = [];
+            this.init();
+        }
 
-            if (progress < 30) {
-                title = "Save for later?";
-                text = "You've barely started. Enter your email to get the PDF.";
-                btnText = "Save Article";
-            } else if (progress > 70) {
-                title = "Loved it?";
-                text = "Share this with your network before you go.";
-                btnText = "Share Article";
-            } else {
-                title = "Jump to conclusion?";
-                text = "Short on time? Read the summary instead.";
-                btnText = "Show Summary";
+        async init() {
+            // Get content for context
+            const text = document.body.innerText.substring(0, 3000);
+            const res = await this.api.post('shortcuts', { text });
+
+            if (res && res.shortcuts && res.shortcuts.length > 0) {
+                this.shortcuts = res.shortcuts;
+                this.renderSidebar();
+                this.startListening();
             }
+        }
 
-            const backdrop = document.createElement('div');
-            backdrop.className = 'aw-modal-backdrop';
-            backdrop.innerHTML = `
-                <div class="aw-modal">
-                    <h2>${title}</h2>
-                    <p style="color:#666; margin: 15px 0;">${text}</p>
-                    <button class="aw-btn" id="aw-modal-pri">${btnText}</button>
-                    <button class="aw-btn secondary" id="aw-modal-sec">Close</button>
-                </div>
+        renderSidebar() {
+            const container = document.createElement('div');
+            container.className = 'aw-shortcuts-sidebar';
+            container.innerHTML = `
+                <div style="margin-bottom:10px; font-weight:bold; color:#666; font-size:12px; text-transform:uppercase;">Shortcuts</div>
+                ${this.shortcuts.map(s => `
+                    <div class="aw-shortcut-item" data-key="${s.key.toLowerCase()}">
+                        <kbd>${s.key}</kbd>
+                        <span>${s.action}</span>
+                    </div>
+                `).join('')}
             `;
-            document.body.appendChild(backdrop);
 
-            // Handlers
-            const close = () => {
-                backdrop.remove();
-                sessionStorage.setItem('aw-exit-dismissed', 'true'); // Prevent reappear
-            };
-
-            backdrop.querySelector('#aw-modal-sec').onclick = close;
-
-            const primaryBtn = backdrop.querySelector('#aw-modal-pri');
-            primaryBtn.onclick = async () => {
-                if (btnText === "Show Summary") {
-                    primaryBtn.innerText = "Summarizing...";
-                    const text = document.body.innerText.substring(0, 2000);
-                    const summary = await api.summarize(text);
-                    if (summary) {
-                        this.showTakeaways(summary.summary);
-                        close();
-                    }
-                } else {
-                    alert("Feature coming soon!");
-                    close();
+            // Styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .aw-shortcuts-sidebar {
+                    position: fixed;
+                    left: 20px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    border: 1px solid #eee;
+                    border-radius: 12px;
+                    padding: 15px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                    z-index: 9999;
+                    font-family: sans-serif;
+                    width: 200px;
+                    transition: opacity 0.3s;
+                    opacity: 0.3; /* Dimmed by default so it's not annoying */
                 }
-            };
+                .aw-shortcuts-sidebar:hover { opacity: 1; }
+                .aw-shortcut-item {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 8px;
+                    font-size: 13px;
+                    color: #444;
+                    padding: 4px;
+                    border-radius: 4px;
+                    transition: background 0.2s;
+                }
+                .aw-shortcut-item.active {
+                    background: #e0f2fe; /* Light Blue highlight */
+                    color: #0284c7;
+                    font-weight: bold;
+                }
+                .aw-shortcut-item kbd {
+                    background: #f3f4f6;
+                    border: 1px solid #d1d5db;
+                    border-radius: 4px;
+                    padding: 2px 6px;
+                    font-family: monospace;
+                    font-size: 11px;
+                    margin-right: 10px;
+                    min-width: 20px;
+                    text-align: center;
+                    box-shadow: 0 1px 0 #d1d5db;
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(container);
+        }
+
+        startListening() {
+            document.addEventListener('keydown', (e) => {
+                // Ignore input fields
+                if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+
+                const pressed = e.key.toLowerCase();
+                const item = document.querySelector(`.aw-shortcut-item[data-key="${pressed}"]`);
+
+                if (item) {
+                    item.classList.add('active');
+                    setTimeout(() => item.classList.remove('active'), 300);
+                }
+            });
         }
     }
 
     // Init
     console.log('AdaptiveWeb: Publisher Edition Active');
     const ui = new UIAdapter();
-    new BehaviorDetector(ui);
+    const detector = new BehaviorDetector(ui);
+    detector.initCursorHesitation();
+
+    // Init Shortcuts
+    new ShortcutsManager(new ApiService());
+
     window.AdaptiveWeb = true;
 
 })();

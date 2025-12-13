@@ -5,10 +5,16 @@ from database import db
 from models import AnalyticsEvent, SummarizeRequest, SimplifyRequest, RelatedRequest
 import asyncio
 import google.generativeai as genai
+from dotenv import load_dotenv
 import os
 
 # --- Configuration ---
-GEMINI_API_KEY = "AIzaSyDBkckyFqOPjX5Zf9OhHG80Z8GDHyb_uq4"
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables.")
+
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 
@@ -62,46 +68,120 @@ async def health():
 @app.post("/api/suggest")
 async def suggest_content(request: SummarizeRequest):
     """
-    Generate Summary + Next Actions based on content.
+    Generate Actionable Suggestions based on page context.
     """
     print(f"📥 Suggest Request received: {len(request.text)} chars")
     if not request.text:
         raise HTTPException(status_code=400, detail="No text provided")
 
-    # 1. Generate Summary (Mock)
-    sentences = request.text.split('.')
-    summary_text = ". ".join([s.strip() for s in sentences[:3] if s.strip()]) + "."
-    if len(summary_text) < 10:
-        summary_text = "Content analyzed. See suggestions below."
+    try:
+        # Prompt for Actionable Advice
+        prompt = (
+            "You are an intelligent browsing assistant. The user is on a webpage and seems hesitant. "
+            "Based on the following page text, suggest 3 specific, short, actionable steps they might want to take next. "
+            "Examples: 'Compare Prices', 'Read Reviews', 'Add to Cart', 'Sign up for Newsletter'. "
+            "Also provide a 1-sentence summary of why they might want to do these things. "
+            "Return the response in this structure: "
+            "Summary: [Reasoning]\n"
+            "1. [Action 1]\n"
+            "2. [Action 2]\n"
+            "3. [Action 3]\n\n"
+            f"Page Text:\n{request.text[:5000]}"
+        )
+        
+        response = await asyncio.to_thread(model.generate_content, prompt)
+        content = response.text
+        
+        # Parse Response (Simple heuristic parsing)
+        lines = content.split('\n')
+        summary_text = "Here are some ideas for you."
+        suggestions = []
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Summary:"):
+                summary_text = line.replace("Summary:", "").strip()
+            elif line.startswith(("1.", "2.", "3.", "-")):
+                # Remove numbering
+                clean_line = line.lstrip("1234567890.- ").strip()
+                if clean_line:
+                    suggestions.append(clean_line)
+                    
+        # Fallback if parsing failed
+        if not suggestions:
+            suggestions = ["Explore features", "Read more details", "Contact support"]
 
-    # 2. Generate Suggestions (Mock Contextual)
-    suggestions = []
-    text_lower = request.text.lower()
-    
-    if "price" in text_lower or "cost" in text_lower or "plan" in text_lower:
-        suggestions.append("Compare Pricing Plans")
-    if "login" in text_lower or "sign in" in text_lower:
-        suggestions.append("Log In to Account")
-    if "contact" in text_lower or "email" in text_lower or "support" in text_lower:
-        suggestions.append("Contact Support")
-    if "download" in text_lower:
-        suggestions.append("Go to Downloads")
-    if "learn more" in text_lower or "documentation" in text_lower:
-        suggestions.append("Read Documentation")
-    
-    # Defaults if none found
-    if not suggestions:
-        suggestions = ["Search related topics", "Scroll to footer", "Return to Home"]
-    
-    # Cap at 3
-    suggestions = suggestions[:3]
+        print(f"📤 Sending Suggestions: {suggestions}")
+        return {
+            "summary": summary_text,
+            "suggestions": suggestions[:3],
+            "method": "gemini_context_aware"
+        }
+        
+    except Exception as e:
+        print(f"❌ Gemini Suggest Error: {e}")
+        return {
+            "summary": "Could not generate smart suggestions.",
+            "suggestions": ["Reload page", "Continue reading", "Search site"],
+            "method": "fallback_error"
+        }
 
-    print(f"📤 Sending Suggestions: {suggestions}")
-    return {
-        "summary": summary_text,
-        "suggestions": suggestions,
-        "method": "mock_context_heuristic"
-    }
+# --- Shortcuts API ---
+@app.post("/api/shortcuts")
+async def get_shortcuts(request: SummarizeRequest):
+    """
+    Generate Keyboard Shortcuts for the current website.
+    """
+    print(f"📥 Shortcuts Request received for context around: {request.text[:50]}...")
+    
+    try:
+        # Prompt for Shortcuts
+        prompt = (
+            "You are an expert in web accessibility and productivity. "
+            "Identify user-specific 'Power User' keyboard shortcuts for the website described by this text. "
+            "Focus on NAVIGATION and ACTIONS (e.g. 'Go to Cart', 'Search', 'Next Page', 'Like'). "
+            "Avoid generic browser shortcuts like 'Space' or 'Page Down' unless the site has custom behavior. "
+            "If it's a popular site (Amazon, YouTube, Gmail, GitHub), provide the REAL shortcuts. "
+            "Return a JSON-like list of exactly 5 key shortcuts. "
+            "Format: Key - Action. "
+            "Example:\n"
+            "/ - Search\n"
+            "C - Compose\n"
+            "G then H - Go Home\n"
+            "Shift + ? - Show Help\n"
+            "Ctrl + Enter - Submit\n\n"
+            f"Page Context:\n{request.text[:5000]}"
+        )
+        
+        response = await asyncio.to_thread(model.generate_content, prompt)
+        content = response.text
+        
+        # Parse logic
+        lines = content.split('\n')
+        shortcuts = []
+        for line in lines:
+            if " - " in line:
+                parts = line.split(" - ")
+                if len(parts) >= 2:
+                    key = parts[0].strip().replace("-", "").replace("*", "").strip()
+                    action = parts[1].strip()
+                    shortcuts.append({"key": key, "action": action})
+        
+        # Fallback
+        if len(shortcuts) < 2:
+            shortcuts = [
+                {"key": "?", "action": "Show Shortcuts"},
+                {"key": "/", "action": "Search Site"},
+                {"key": "Home", "action": "Scroll Top"},
+                {"key": "Alt+Left", "action": "Go Back"},
+                {"key": "Ctrl+D", "action": "Bookmark"}
+            ]
+            
+        return {"shortcuts": shortcuts[:5]}
+
+    except Exception as e:
+        print(f"❌ Shortcuts Error: {e}")
+        return {"shortcuts": []}
 
 # --- Summarization API ---
 @app.post("/api/summarize")
