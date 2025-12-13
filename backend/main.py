@@ -2,8 +2,15 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import db
-from models import AnalyticsEvent, SummarizeRequest
+from models import AnalyticsEvent, SummarizeRequest, SimplifyRequest, RelatedRequest
 import asyncio
+import google.generativeai as genai
+import os
+
+# --- Configuration ---
+GEMINI_API_KEY = "AIzaSyDBkckyFqOPjX5Zf9OhHG80Z8GDHyb_uq4"
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('models/gemini-2.5-flash')
 
 # In-memory storage for demo fallback
 mock_events = []
@@ -55,25 +62,62 @@ async def health():
 @app.post("/api/summarize")
 async def summarize_content(request: SummarizeRequest):
     """
-    Mock AI Summarization.
+    AI Summarization using Gemini Pro.
     """
     print(f"📥 Summarize Request received: {len(request.text)} chars")
     if not request.text:
         raise HTTPException(status_code=400, detail="No text provided")
         
-    sentences = request.text.split('.')
-    # Logic: Take 3 distinct sentences from the start
-    summary_text = ". ".join([s.strip() for s in sentences[:3] if s.strip()]) + "."
-    
-    # Ensure we return something visible
-    if len(summary_text) < 10:
-        summary_text = "Content was too short to summarize efficiently, but here is an AI analysis confirmation."
+    try:
+        # Real Gemini API Call
+        prompt = f"Summarize the following text in 3 concise, impactful bullet points. Keep it under 50 words total:\n\n{request.text}"
+        response = await asyncio.to_thread(model.generate_content, prompt)
+        summary = response.text
         
-    print(f"📤 Sending Summary: {summary_text[:50]}...")
-    return {
-        "summary": summary_text,
-        "method": "mock_heuristic_python"
-    }
+        print(f"📤 Sending Summary: {summary[:50]}...")
+        return {
+            "summary": summary,
+            "method": "gemini_pro"
+        }
+    except Exception as e:
+        print(f"❌ Gemini Error: {e}")
+        # Fallback to heuristic if API fails
+        sentences = request.text.split('.')
+        summary_text = ". ".join([s.strip() for s in sentences[:3] if s.strip()]) + "."
+        return {
+            "summary": "AI Error. Fallback: " + summary_text,
+            "method": "fallback"
+        }
+
+# --- Publisher API: Reading Difficulty ---
+@app.post("/api/simplify")
+async def simplify_text(request: SimplifyRequest):
+    """
+    Mock Feature: Returns a 'simplified' version of the text.
+    In production, this would use a fine-tuned LLM.
+    """
+    if not request.text:
+        raise HTTPException(status_code=400, detail="No text provided")
+    
+    # Mock Logic: Prepend "Simply put: " and truncate
+    # Real Logic: OpenAI "Rephrase this at 8th grade reading level"
+    simplified = "Simply put: " + request.text[:100] + "... (This is a simplified version)"
+    
+    return {"original": request.text[:50], "simplified": simplified}
+
+# --- Publisher API: Engaged Reader ---
+@app.post("/api/related")
+async def get_related_articles(request: RelatedRequest):
+    """
+    Mock Feature: Returns related articles based on context.
+    """
+    # Mock Database of Articles
+    articles = [
+        {"title": "The Future of Digital Media", "url": "#", "image": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150"},
+        {"title": "Understanding User Intent", "url": "#", "image": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150"},
+        {"title": "10 Tips for Better UX", "url": "#", "image": "https://images.unsplash.com/photo-1586717791821-3f44a5638d48?w=150"}
+    ]
+    return {"articles": articles}
 
 # --- Analytics API ---
 @app.post("/api/analytics")

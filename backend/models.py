@@ -1,17 +1,18 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Any
-from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional, Dict, Any, List
 
 class AnalyticsEvent(BaseModel):
-    eventType: str
+    eventType: str # "scroll", "hover", "click", "skim", "scroll_back"
     domain: str
-    timestamp: datetime = Field(default_factory=datetime.now)
-    metadata: Optional[Any] = None
+    metadata: Optional[Dict[str, Any]] = None
+    timestamp: str
 
 class SummarizeRequest(BaseModel):
     text: str
-    maxLength: Optional[int] = 200
 
-class AnalyticsResponse(BaseModel):
-    success: bool
-    data: Optional[Any] = None
+class SimplifyRequest(BaseModel):
+    text: str
+
+class RelatedRequest(BaseModel):
+    url: str
+    keywords: Optional[List[str]] = None

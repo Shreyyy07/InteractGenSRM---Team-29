@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { ArrowRight, MousePointer2, Scroll, Eye, Zap, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import Link from 'next/link';
+
 export default function Home() {
   const [email, setEmail] = useState('');
   const [saved, setSaved] = useState(false);
@@ -29,32 +31,45 @@ export default function Home() {
 
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold mb-6">
-              v1.0.0 Now Available
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden pt-20">
+
+        {/* Ambient Background Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center gap-8">
+
+          {/* Brand/Logo Placeholder (Replacing InteractGEN) */}
+          <div className="flex items-center gap-2 mb-4 opacity-80 animate-fade-in">
+            <div className="w-6 h-6 rounded-full border border-white/30 flex items-center justify-center">
+              <div className="w-1 h-3 bg-white/80 rounded-full" />
             </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600">
-              The Interface That<br />Understands You.
-            </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-              AdaptiveWeb detects your micro-behaviors in real-time to provide the right help, exactly when you need it. No configuration required.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:scale-105 transition-transform">
-                Try Live Demo
-              </button>
-              <button className="px-8 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 justify-center">
-                View Documentation <ArrowRight size={18} />
-              </button>
-            </div>
-          </motion.div>
+            <span className="text-sm font-medium tracking-widest uppercase text-white/60">AdaptiveWeb</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tight text-white leading-[0.9] drop-shadow-2xl">
+            <span className="block bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">Build boldly.</span>
+            <span className="block text-white/40">Break assumptions.</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-white/50 font-light tracking-wide max-w-lg">
+            Design interactions no one has seen before.
+            <br />
+            <span className="text-sm text-white/30 mt-2 block">Powered by Adaptive Intelligence.</span>
+          </p>
+
+          {/* CTA Section */}
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <span className="text-[10px] font-mono text-blue-400 tracking-widest uppercase">Timer Started</span>
+
+
+          </div>
+
         </div>
+
+        {/* Decorative Grid/Lines */}
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </section>
 
       {/* Features Grid */}
@@ -89,7 +104,7 @@ export default function Home() {
 
           <div className="space-y-16">
 
-            {/* Demo 1: Hover */}
+            {/* Demo 1: Hover Dwell */}
             <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
               <div className="flex items-start gap-4 mb-6">
                 <div className="p-3 bg-yellow-100 text-yellow-700 rounded-lg">
@@ -101,8 +116,14 @@ export default function Home() {
                 </div>
               </div>
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-lg leading-relaxed p-4 border border-dashed border-slate-300 rounded-xl" id="hover-target">
-                  This is a test paragraph for the Hover Dwell feature. If the AdaptiveWeb extension is working correctly, hovering over this specific block of text for more than 1.5 seconds should trigger a subtle yellow highlight effect, indicating that the system has detected your interest.
+                <p
+                  className="text-lg leading-relaxed p-6 border-2 border-dashed border-slate-300 rounded-xl transition-all duration-300
+                    hover:bg-black/90 hover:text-white hover:border-white
+                    dark:hover:bg-white/90 dark:hover:text-black dark:hover:border-black
+                    cursor-help"
+                  id="hover-target"
+                >
+                  Adaptive interfaces represent the next evolution of web design. Unlike static pages that treat every user the same, an adaptive system detects your intent in real-time. By analyzing micro-interactions—like how long you hesitate on a paragraph or how quickly you scroll—the interface restructures itself to match your cognitive state. This ensures you get detailed explanations when you're confused and concise summaries when you're rushing.
                 </p>
               </div>
             </div>

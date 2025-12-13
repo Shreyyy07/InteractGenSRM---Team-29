@@ -8,3 +8,5 @@ out/
 build/
 coverage/
 .vscode/
+__pycache__/
+*.pyc
