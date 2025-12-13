@@ -182,6 +182,8 @@
     class IntentInference {
         constructor(uiAdapter) {
             this.ui = uiAdapter;
+            this.API_URL = 'http://localhost:8000/api';
+
             // Scroll back specific state
             this.scrollState = {
                 state: 'idle', // idle, scrolling_down
@@ -190,8 +192,26 @@
                 startTime: 0
             };
 
-            // Listen to scroll globally for the better state machine approach
+            // Listen to scroll globally
             window.addEventListener('scroll', () => this.updateScrollState());
+        }
+
+        async logEvent(type, metadata = {}) {
+            try {
+                await fetch(`${this.API_URL}/analytics`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventType: type,
+                        domain: window.location.hostname,
+                        metadata: metadata,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                console.log(`[AdaptiveWeb] Logged: ${type}`);
+            } catch (e) {
+                if (CONFIG.debug) console.warn('[AdaptiveWeb] API Error:', e);
+            }
         }
 
         updateScrollState() {
@@ -219,16 +239,11 @@
                 const timeElapsed = now - this.scrollState.startTime;
 
                 if (totalDown > CONFIG.scrollBackMinDelta && timeElapsed < CONFIG.scrollBackWindow) {
-                    // We scrolled down enough, and now we are going up?
-                    // The PRD says "User scrolls down > 100px. User then scrolls upward within 3s."
                     this.onScrollBack();
-
-                    // Reset to avoid double trigger
                     this.scrollState.state = 'idle';
                 }
             }
 
-            // Cleanup stale state
             if (now - this.scrollState.startTime > CONFIG.scrollBackWindow) {
                 this.scrollState.state = 'idle';
             }
@@ -237,11 +252,10 @@
         onHoverDwell(element) {
             console.log('Detected: Hover Dwell');
             this.ui.applyHighlight(element);
+            this.logEvent('hover', { tag: element.tagName });
         }
 
         onHoverLeave(element) {
-            // Optional: Start a timer to remove highlight if not interacted?
-            // PRD: "Highlight persists for 3 seconds after hover ends"
             setTimeout(() => {
                 this.ui.removeHighlight(element);
             }, CONFIG.hoverPersist);
@@ -250,25 +264,44 @@
         onRapidSkim() {
             console.log('Detected: Rapid Skimming');
             this.ui.applyTLDR();
+            this.logEvent('skim', { speed: 'fast' });
         }
 
-        onScrollBack() {
+        async onScrollBack() {
             console.log('Detected: Scroll Back');
+            this.logEvent('scroll_back');
+
             const text = this.getCurrentSectionText();
-            if (text.length > 300) {
-                this.ui.showSummary(text);
+            if (text.length > 200) {
+                // Use Backend AI Summary if available
+                this.ui.showSummary("Loading AI Summary...", true);
+
+                try {
+                    const res = await fetch(`${this.API_URL}/summarize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    const data = await res.json();
+                    if (data.summary) {
+                        this.ui.updateSummaryContent(data.summary);
+                    }
+                } catch (e) {
+                    console.error("AI Summary failed", e);
+                    this.ui.updateSummaryContent(text.substring(0, 150) + "...");
+                }
             }
         }
 
         getCurrentSectionText() {
-            // Simple heuristic: get text in viewport
-            // Or find the largest text block visible
-            return document.body.innerText.substring(0, 500); // Placeholder
+            // Simple heuristic to get visible text
+            return document.body.innerText.substring(0, 800);
         }
 
         onCursorHesitation(coords) {
             console.log('Detected: Cursor Hesitation');
             this.ui.showSuggestion(coords);
+            this.logEvent('hesitation', { x: coords.x, y: coords.y });
         }
     }
 
@@ -287,32 +320,40 @@
             el.classList.remove('aw-highlighted');
         }
 
-        showSummary(text) {
+        showSummary(text, isLoading = false) {
             if (document.querySelector('.aw-summary-box')) return;
 
             const box = document.createElement('div');
             box.className = 'aw-summary-box';
+
+            const content = isLoading
+                ? `<div class="aw-loading">✨ Generating Smart Summary...</div>`
+                : text.substring(0, 200) + '...';
+
             box.innerHTML = `
         <div class="aw-summary-box-header">
           <span>Quick Summary</span>
           <button class="aw-close-btn">&times;</button>
         </div>
         <div class="aw-summary-content">
-          ${text.substring(0, 200)}...
+          ${content}
         </div>
         <button class="aw-read-full-btn">Read Full Section</button>
       `;
 
             document.body.appendChild(box);
-
-            // Animate in
             requestAnimationFrame(() => box.classList.add('aw-visible'));
-
-            // Events
             box.querySelector('.aw-close-btn').onclick = () => this.dismissSummary(box);
+            setTimeout(() => this.dismissSummary(box), 12000);
 
-            // Auto-dismiss
-            setTimeout(() => this.dismissSummary(box), 10000);
+            this.currentSummaryBox = box;
+        }
+
+        updateSummaryContent(newText) {
+            if (this.currentSummaryBox) {
+                const contentDiv = this.currentSummaryBox.querySelector('.aw-summary-content');
+                if (contentDiv) contentDiv.innerHTML = newText;
+            }
         }
 
         dismissSummary(box) {

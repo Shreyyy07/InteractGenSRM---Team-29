@@ -12,7 +12,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         // Fetch stats from API
-        fetch('/api/analytics')
+        fetch('http://localhost:8000/api/analytics')
             .then(res => res.json())
             .then(data => {
                 if (data.success) setStats(data.stats);
