@@ -68,6 +68,7 @@
   margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -91,13 +92,11 @@
 .aw-tldr-collapsed {
   position: relative;
   overflow: hidden;
-  height: auto; 
+  height: auto;
   /* We will likely set max-height dynamically or rely on line clamping */
 }
 
-.aw-tldr-content-wrapper {
-  /* Wrapper to handle the truncation visual */
-}
+
 
 .aw-tldr-read-more {
   color: #2196F3;
@@ -114,7 +113,7 @@
 
 .aw-tldr-fade {
   display: inline-block;
-  background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,1) 50%);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
   width: 20px;
   height: 1em;
   vertical-align: bottom;
@@ -132,7 +131,8 @@
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 14px;
   z-index: 10000;
-  pointer-events: none; /* Initially non-interactive or maybe interactive? PRD says 'Contextual assistance', implies interaction might be needed, but 'Need help finding something?' is a prompt. */
+  pointer-events: auto;
+  /* interactive */
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -145,9 +145,49 @@
   position: absolute;
   top: -6px;
   left: 10px;
-  width: 0; 
-  height: 0; 
+  width: 0;
+  height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-bottom: 6px solid rgba(33, 150, 243, 0.95);
+}
+
+/* Feature 5: Next Action Suggestions */
+.aw-suggestions-title {
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  font-weight: 600;
+}
+
+.aw-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aw-suggestion-chip {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.aw-suggestion-chip:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.aw-suggestion-chip:active {
+  transform: translateY(0);
 }
