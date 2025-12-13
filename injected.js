@@ -820,8 +820,8 @@
             this.currentSummaryBox = box;
 
             // Simple truncate for visual cleaness, "Expand" to see full
-            const isLong = summary.length > 300;
-            const displaySummary = isLong ? summary.substring(0, 300) + '...' : summary;
+            const isLong = summary.length > 150; // Lowered from 300
+            const displaySummary = isLong ? summary.substring(0, 150) + '...' : summary;
 
             box.innerHTML = `
                 <h3 style="margin:0 0 10px 0">⚡ Key Takeaways</h3>
@@ -846,7 +846,63 @@
             box.querySelector('#aw-takeaways-close').onclick = () => box.remove();
         }
 
-        // ... showExitModal is fine ...
+        showExitModal(progress, api) {
+            if (document.querySelector('.aw-modal-backdrop')) return;
+
+            let title = "Wait!";
+            let text = "Don't miss out.";
+            let btnText = "Stay";
+
+            if (progress < 30) {
+                title = "Save for later?";
+                text = "You've barely started. Enter your email to get the PDF.";
+                btnText = "Save Article";
+            } else if (progress > 70) {
+                title = "Loved it?";
+                text = "Share this with your network before you go.";
+                btnText = "Share Article";
+            } else {
+                title = "Jump to conclusion?";
+                text = "Short on time? Read the summary instead.";
+                btnText = "Show Summary";
+            }
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'aw-modal-backdrop';
+            backdrop.innerHTML = `
+                <div class="aw-modal">
+                    <h2>${title}</h2>
+                    <p style="color:#666; margin: 15px 0;">${text}</p>
+                    <button class="aw-btn" id="aw-modal-pri">${btnText}</button>
+                    <button class="aw-btn secondary" id="aw-modal-sec">Close</button>
+                </div>
+            `;
+            document.body.appendChild(backdrop);
+
+            // Handlers
+            const close = () => {
+                backdrop.remove();
+                sessionStorage.setItem('aw-exit-dismissed', 'true'); // Prevent reappear
+            };
+
+            backdrop.querySelector('#aw-modal-sec').onclick = close;
+
+            const primaryBtn = backdrop.querySelector('#aw-modal-pri');
+            primaryBtn.onclick = async () => {
+                if (btnText === "Show Summary") {
+                    primaryBtn.innerText = "Summarizing...";
+                    const text = document.body.innerText.substring(0, 2000);
+                    const summary = await api.summarize(text);
+                    if (summary) {
+                        this.showTakeaways(summary.summary);
+                        close();
+                    }
+                } else {
+                    alert("Feature coming soon!");
+                    close();
+                }
+            };
+        }
     }
 
     class ShortcutsManager {
@@ -872,7 +928,7 @@
             const container = document.createElement('div');
             container.className = 'aw-shortcuts-sidebar';
             container.innerHTML = `
-                <div style="margin-bottom:10px; font-weight:bold; color:#666; font-size:12px; text-transform:uppercase;">Shortcuts</div>
+                <div style="margin-bottom:10px; font-weight:bold; color:#888; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Shortcuts</div>
                 ${this.shortcuts.map(s => `
                     <div class="aw-shortcut-item" data-key="${s.key.toLowerCase()}">
                         <kbd>${s.key}</kbd>
@@ -889,44 +945,50 @@
                     left: 20px;
                     top: 50%;
                     transform: translateY(-50%);
-                    background: rgba(255, 255, 255, 0.95);
-                    border: 1px solid #eee;
+                    background: rgba(30, 30, 30, 0.95); /* DARK MODE */
+                    border: 1px solid #444;
                     border-radius: 12px;
                     padding: 15px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                     z-index: 9999;
-                    font-family: sans-serif;
-                    width: 200px;
+                    font-family: 'Segoe UI', sans-serif;
+                    width: 220px;
                     transition: opacity 0.3s;
-                    opacity: 0.3; /* Dimmed by default so it's not annoying */
+                    opacity: 0.8; /* Slightly more visible by default */
+                    color: #fff;
+                    backdrop-filter: blur(10px);
                 }
                 .aw-shortcuts-sidebar:hover { opacity: 1; }
                 .aw-shortcut-item {
                     display: flex;
                     align-items: center;
-                    margin-bottom: 8px;
+                    margin-bottom: 10px;
                     font-size: 13px;
-                    color: #444;
-                    padding: 4px;
-                    border-radius: 4px;
-                    transition: background 0.2s;
+                    color: #ddd;
+                    padding: 6px;
+                    border-radius: 6px;
+                    transition: all 0.2s;
+                    border: 1px solid transparent;
                 }
                 .aw-shortcut-item.active {
-                    background: #e0f2fe; /* Light Blue highlight */
-                    color: #0284c7;
-                    font-weight: bold;
+                    background: rgba(59, 130, 246, 0.2);
+                    border-color: rgba(59, 130, 246, 0.5);
+                    color: white;
+                    transform: scale(1.02);
                 }
                 .aw-shortcut-item kbd {
-                    background: #f3f4f6;
-                    border: 1px solid #d1d5db;
+                    background: #333;
+                    border: 1px solid #555;
                     border-radius: 4px;
-                    padding: 2px 6px;
+                    color: #fff;
+                    padding: 3px 8px;
                     font-family: monospace;
-                    font-size: 11px;
-                    margin-right: 10px;
-                    min-width: 20px;
+                    font-size: 12px;
+                    margin-right: 12px;
+                    min-width: 25px;
                     text-align: center;
-                    box-shadow: 0 1px 0 #d1d5db;
+                    box-shadow: 0 2px 0 #111;
+                    font-weight: bold;
                 }
             `;
             document.head.appendChild(style);

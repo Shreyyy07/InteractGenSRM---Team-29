@@ -126,6 +126,15 @@ async def suggest_content(request: SummarizeRequest):
             "method": "fallback_error"
         }
 
+# --- Caching to prevent 429 ---
+RESPONSE_CACHE = {}
+
+def get_cached_response(text: str, prefix: str):
+    """Simple in-memory cache to avoid hitting Gemini for same content."""
+    import hashlib
+    hash_key = f"{prefix}:{hashlib.md5(text.encode()).hexdigest()}"
+    return hash_key, RESPONSE_CACHE.get(hash_key)
+
 # --- Shortcuts API ---
 @app.post("/api/shortcuts")
 async def get_shortcuts(request: SummarizeRequest):
@@ -134,6 +143,12 @@ async def get_shortcuts(request: SummarizeRequest):
     """
     print(f"📥 Shortcuts Request received for context around: {request.text[:50]}...")
     
+    # Check Cache
+    hash_key, cached = get_cached_response(request.text, "shortcuts")
+    if cached:
+        print("⚡ Serving Shortcuts from Cache")
+        return cached
+
     try:
         # Prompt for Shortcuts
         prompt = (
@@ -176,8 +191,10 @@ async def get_shortcuts(request: SummarizeRequest):
                 {"key": "Alt+Left", "action": "Go Back"},
                 {"key": "Ctrl+D", "action": "Bookmark"}
             ]
-            
-        return {"shortcuts": shortcuts[:5]}
+        
+        result = {"shortcuts": shortcuts[:5]}
+        RESPONSE_CACHE[hash_key] = result
+        return result
 
     except Exception as e:
         print(f"❌ Shortcuts Error: {e}")
@@ -192,6 +209,12 @@ async def summarize_content(request: SummarizeRequest):
     print(f"📥 Summarize Request received: {len(request.text)} chars")
     if not request.text:
         raise HTTPException(status_code=400, detail="No text provided")
+
+    # Check Cache
+    hash_key, cached = get_cached_response(request.text, "summary")
+    if cached:
+        print("⚡ Serving Summary from Cache")
+        return cached
         
     try:
         # Real Gemini API Call
@@ -200,10 +223,13 @@ async def summarize_content(request: SummarizeRequest):
         summary = response.text
         
         print(f"📤 Sending Summary: {summary[:50]}...")
-        return {
+        result = {
             "summary": summary,
             "method": "gemini_pro"
         }
+        RESPONSE_CACHE[hash_key] = result
+        return result
+
     except Exception as e:
         print(f"❌ Gemini Error: {e}")
         # Fallback to heuristic if API fails
