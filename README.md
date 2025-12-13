@@ -1,285 +1,271 @@
-# AdaptiveWeb 🌐✨
 
-> Intelligent UI adaptation layer that detects user micro-behaviors and adapts web interfaces in real-time.
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://developer.chrome.com/docs/extensions/)
-[![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# AdaptiveWeb 🌐
 
-## 🎯 Overview
+**Real-Time Intelligent UI Adaptation via Micro-Behavior Analysis**
 
-AdaptiveWeb is a zero-configuration, client-side browser extension that intelligently adapts web page interfaces based on user behavior patterns. It reduces cognitive load, improves navigation efficiency, and creates a seamless browsing experience through subtle, non-disruptive interventions.
+> A modular browser extension + backend system that detects user micro-behaviors and adapts web interfaces in real time using rule-driven intelligence.
 
-### Key Features
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green)
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
+![Architecture](https://img.shields.io/badge/System-Architecture-orange)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-- **🎨 Hover Dwell Highlight** - Highlights content you're interested in
-- **📋 Scroll-Back Auto-Pin Summary** - Shows contextual summaries when you scroll back
-- **⚡ Rapid-Skimming TL;DR Mode** - Condenses long content when you're skimming
-- **🤔 Cursor Hesitation Suggestion** - Offers help when you seem confused
+---
 
-## 🚀 Quick Start
+## 📌 What is AdaptiveWeb?
 
-### Chrome Extension Installation
+**AdaptiveWeb** is an intelligent UI adaptation layer that observes **user micro-behaviors** (scrolling, hovering, cursor hesitation, dwell time) and dynamically adjusts web interfaces to reduce cognitive load and improve navigation efficiency.
 
-1. Clone this repository: 
-   ```bash
-   git clone https://github.com/yourusername/adaptiveweb.git
-   cd adaptiveweb
-   ```
+Unlike traditional personalization tools, AdaptiveWeb:
 
-2. Open Chrome and navigate to `chrome://extensions/`
+* Works **without user configuration**
+* Operates **non-intrusively**
+* Adapts interfaces **in real time**
+* Uses **rule-based intent inference**, not invasive tracking
 
-3. Enable **Developer mode** (toggle in top-right corner)
+---
 
-4. Click **Load unpacked** and select the `extension/` folder
+## 🎯 Core Capabilities
 
-5. The extension will automatically activate on all websites!  🎉
+* Detects **user intent** from behavior signals
+* Applies **contextual UI adaptations**
+* Supports **client-only mode** and **rule-driven backend mode**
+* Designed for **high performance & privacy**
 
-### Standalone Script Usage
+---
 
-Add to any webpage: 
+## ✨ Key Features
 
-```html
-<link rel="stylesheet" href="injected.css">
-<script src="injected.js"></script>
+### 🎨 Hover Dwell Highlight
+
+Highlights content the user is actively reading.
+
+* Trigger: Hover > **1500 ms**
+* Effect: Soft highlight with fade-out
+* Goal: Visual confirmation of focus
+
+---
+
+### 📋 Scroll-Back Auto Summary
+
+Displays a contextual summary when users scroll back.
+
+* Trigger: Scroll down → quick scroll up
+* Effect: Floating summary overlay
+* Goal: Reduce re-reading effort
+
+---
+
+### ⚡ Rapid Skimming (TL;DR Mode)
+
+Condenses long content during fast scrolling.
+
+* Trigger: Multiple rapid scrolls
+* Effect: Paragraphs collapse with “Read more”
+* Goal: Faster information scanning
+
+---
+
+### 🤔 Cursor Hesitation Assistance
+
+Detects uncertainty and offers guidance.
+
+* Trigger: Low cursor variance / circular movement
+* Effect: Suggestion bubble near cursor
+* Goal: Reduce friction & confusion
+
+---
+
+## 🧠 High-Level Architecture
+
+```
+Browser (Client)
+ └─ Chrome Extension
+     ├─ Behavior Detection Modules
+     ├─ Intent Inference Engine
+     ├─ UI Adaptation Layer
+     ├─ Local Analytics Buffer
+     └─ Upload Scheduler
+          ↓
+Backend (Optional)
+ ├─ API Gateway
+ ├─ Analytics Ingestion
+ ├─ Pattern Analysis Jobs
+ ├─ Rule Generator
+ └─ MongoDB (Adaptation Rules)
+          ↓
+Partner Integration
+ └─ AdaptiveWeb SDK / UI Adaptation Engine
 ```
 
-Optional configuration:
+---
 
-```html
-<script>
-  window. AdaptiveWeb.init({
-    hoverDelay: 1500,
-    scrollBackWindow:  3000,
-    debug: false
-  });
-</script>
-```
 
-## 📐 Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Web Page                              │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-          ┌──────────────────────────────┐
-          │   Browser Extension Layer    │
-          │  (Manifest V3 - Content      │
-          │   Script Orchestration)      │
-          └──────────────┬───────────────┘
-                         │
-                         ▼
-          ┌──────────────────────────────┐
-          │      Core Engine Layer       │
-          │       (injected.js)          │
-          └──────────────┬───────────────┘
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-        ▼                ▼                ▼
-┌──────────────┐ ┌──────────────┐ ┌─────────────┐
-│  Behavior    │ │    Intent    │ │     UI      │
-│  Detector    │ │  Inference   │ │   Adapter   │
-└──────┬───────┘ └──────┬───────┘ └──────┬──────┘
-       │                │                │
-       │  ┌─────────────┴─────────────┐  │
-       │  │                           │  │
-       ▼  ▼                           ▼  ▼
-┌─────────────────────────────────────────────┐
-│         Event Tracking Layer                │
-│  • Scroll Monitor (throttled 100ms)         │
-│  • Hover Tracker (1500ms threshold)         │
-│  • Cursor Position Sampler (50ms)           │
-│  • Scroll-Back Detection (3s window)        │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│         Styling Layer (injected.css)        │
-│  • Non-conflicting classes (aw- prefix)     │
-│  • Smooth animations & transitions          │
-│  • Responsive design support                │
-└─────────────────────────────────────────────┘
-```
+## �  Architecture Diagram
 
-### Component Breakdown
+> Full system flow including client, backend, jobs, and partner integration.
 
-| Component | Responsibility | Key Technologies |
-|-----------|---------------|------------------|
-| **Behavior Detector** | Monitors user interactions (scrolls, hovers, cursor movement) | Event listeners, throttling/debouncing |
-| **Intent Inference** | Analyzes patterns to determine user intent | Statistical variance, pattern recognition |
-| **UI Adapter** | Applies visual adaptations to the DOM | Dynamic CSS injection, DOM manipulation |
-| **Event Tracking** | Captures and buffers user events efficiently | Circular buffers, performance optimization |
+![Architecture Diagram](frontend/public/architecturedig.png)
 
-## 🎨 Features in Detail
+---
 
-### 1. Hover Dwell Highlight
+## 🧱 Component Breakdown
 
-When you hover over content for **1.5+ seconds**, it gets subtly highlighted to confirm your interest.
+| Layer   | Component               | Responsibility                        |
+| ------- | ----------------------- | ------------------------------------- |
+| Client  | Behavior Detection      | Capture scroll, hover, cursor signals |
+| Client  | Intent Inference Engine | Rule-based intent classification      |
+| Client  | UI Adaptation Layer     | DOM & CSS mutations                   |
+| Client  | Local Storage           | IndexedDB + Chrome Storage            |
+| Client  | Upload Scheduler        | Batched analytics uploads             |
+| Backend | API Gateway             | Secure ingestion endpoint             |
+| Backend | Analytics Service       | Event processing                      |
+| Backend | Job Processing          | Pattern analysis & rule generation    |
+| Backend | MongoDB                 | Adaptation rules & summaries          |
+| Partner | SDK / UI Engine         | Rule-driven UI application            |
 
-**Trigger**: Hover on content element for >1500ms  
-**Effect**: Soft yellow highlight with smooth transition  
-**Duration**:  Persists for 3 seconds after hover ends
-
-### 2. Scroll-Back Auto-Pin Summary
-
-Scrolling down then quickly back up shows a floating summary of the current section.
-
-**Trigger**: Scroll down >100px, then scroll up within 3 seconds  
-**Effect**: Summary box in top-right corner (first 200 chars)  
-**Duration**: Auto-dismiss after 10 seconds
-
-### 3. Rapid-Skimming TL;DR Mode
-
-When scrolling rapidly, long paragraphs automatically condense to summaries.
-
-**Trigger**: 3+ scrolls of 200px+ within 2 seconds  
-**Effect**: Paragraphs collapse to first 120 characters with "read more"  
-**Interaction**: Click to expand smoothly to full content
-
-### 4. Cursor Hesitation Suggestion
-
-Circular or erratic cursor movement triggers contextual help.
-
-**Trigger**: Cursor variance <5000px² for 3+ seconds  
-**Effect**: Suggestion bubble near cursor:  "Need help finding something?"  
-**Duration**: Auto-dismiss after 5 seconds
+---
 
 ## 📁 Project Structure
 
 ```
 adaptiveweb/
 ├── extension/
-│   ├── manifest.json          # Chrome extension manifest (V3)
-│   ├── content_script.js      # Injection orchestrator
-│   ├── injected.js            # Core behavior detection engine
-│   ├── injected.css           # Adaptive UI styles
-│   ├── icons/                 # Extension icons (16, 48, 128px)
-│   └── README.md              # Extension-specific docs
-├── demo/
-│   ├── index.html             # Demo page with test content
-│   ├── test. js                # Behavior simulation scripts
-│   └── styles.css             # Demo page styles
+│   ├── manifest.json
+│   ├── content_script.js
+│   ├── injected.js
+│   ├── injected.css
+│   └── icons/
+│
+├── backend/
+│   ├── api-gateway/
+│   ├── analytics-service/
+│   ├── jobs/
+│   └── database/
+│
 ├── docs/
-│   ├── PRD.md                 # Product Requirements Document
-│   ├── INSTALLATION.md        # Detailed installation guide
-│   └── TESTING.md             # Testing procedures
-└── README.md                  # This file
+│   ├── PRD.md
+│   ├── ARCHITECTURE.md
+│   ├── SECURITY.md
+│   └── TESTING.md
+│
+├── demo/
+│   ├── index.html
+│   └── test.js
+│
+└── README.md
 ```
+
+---
+
+## 🚀 Installation (Chrome Extension)
+
+```bash
+git clone https://github.com/yourusername/adaptiveweb.git
+cd adaptiveweb
+```
+
+1. Open `chrome://extensions`
+2. Enable **Developer Mode**
+3. Click **Load unpacked**
+4. Select the `extension/` directory
+
+✅ AdaptiveWeb activates automatically on all pages.
+
+---
 
 ## ⚙️ Configuration
 
-All thresholds are configurable: 
-
-```javascript
+```js
 window.AdaptiveWeb.init({
-  // Hover Dwell Settings
-  hoverDelay: 1500,           // ms before highlight appears
-  highlightDuration: 3000,    // ms highlight persists
-  
-  // Scroll-Back Settings
-  scrollBackWindow: 3000,     // ms window to detect scroll-back
-  summaryLength: 200,         // characters in summary
-  
-  // Rapid Skim Settings
-  skimScrollCount: 3,         // minimum scrolls to trigger
-  skimTimeWindow: 2000,       // ms window for detection
-  tldrLength: 120,            // characters in collapsed text
-  
-  // Cursor Hesitation Settings
-  cursorBufferSize: 20,       // positions tracked
-  varianceThreshold: 5000,    // px² trigger threshold
-  
-  // General
-  debug: false                // enable console logging
+  hoverDelay: 1500,
+  highlightDuration: 3000,
+  scrollBackWindow: 3000,
+  skimScrollCount: 3,
+  tldrLength: 120,
+  cursorBufferSize: 20,
+  varianceThreshold: 5000,
+  debug: false
 });
 ```
 
-## 🎯 Performance
+---
 
-AdaptiveWeb is designed for minimal impact:
+## 📊 Performance Targets
 
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Script Load Time | <100ms | ✅ |
-| Memory Footprint | <5MB | ✅ |
-| Scroll Performance | 60fps | ✅ |
-| Website Compatibility | 95%+ | ✅ |
+| Metric           | Target        |
+| ---------------- | ------------- |
+| Script load      | < 100 ms      |
+| Memory usage     | < 5 MB        |
+| Scroll FPS       | 60 FPS        |
+| Event throttling | Yes           |
+| DOM safety       | WeakMap-based |
 
-**Optimization Techniques:**
-- Throttled scroll events (100ms intervals)
-- Debounced hover events (100ms delay)
-- Cursor sampling at 50ms (not every movement)
-- WeakMap for efficient element tracking
-- Limited historical buffers (10 scrolls, 20 cursor positions)
-
-## 🌐 Browser Support
-
-- ✅ Chrome 90+
-- ✅ Microsoft Edge 90+
-- ✅ Brave Browser
-- ✅ Opera Browser
-- ✅ Any Chromium-based browser with Manifest V3 support
+---
 
 ## 🔒 Privacy & Security
 
-- **100% client-side processing** - No data ever leaves your browser
-- **Zero data collection** - We don't track or store anything
-- **No external API calls** - Everything runs locally
-- **Open source** - Audit the code yourself
+* ✅ Client-side first architecture
+* ✅ No raw user data stored
+* ✅ No third-party trackers
+* ✅ Batched + anonymized analytics
+* ✅ API key validation (backend)
+
+---
 
 ## 🧪 Testing
-
-Run the demo page to test all features:
 
 ```bash
 cd demo
 python -m http.server 8000
-# Visit http://localhost:8000
 ```
 
-**Test Scenarios:**
-1.  Hover over headings for 2+ seconds → Highlight appears
-2. Scroll down, then quickly back up → Summary box shows
-3. Rapidly scroll 3+ times → TL;DR mode activates
-4. Move cursor in circles for 3+ seconds → Suggestion appears
+Test scenarios:
 
-See [docs/TESTING.md](docs/TESTING.md) for comprehensive test procedures.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🗺️ Roadmap
-
-### Phase 2 (Post-MVP)
-- [ ] Machine learning for personalized behavior patterns
-- [ ] User preference learning and adaptation
-- [ ] Additional behavior patterns (double-tap, long-press)
-- [ ] Enhanced accessibility features
-
-### Phase 3 (Advanced)
-- [ ] Optional AI-powered content summarization
-- [ ] Multi-language interface support
-- [ ] Custom behavior rule editor
-- [ ] Cross-device behavior synchronization
-
-## 📧 Contact
-
-Questions or feedback? Open an issue or reach out! 
+* Hover dwell → highlight
+* Scroll back → summary
+* Rapid scroll → TL;DR
+* Cursor hesitation → suggestion
 
 ---
 
-<p align="center">Made with ❤️ for better web browsing experiences</p>
+## 🛣️ Roadmap
+
+### Phase 2
+
+* ML-based intent scoring
+* Personal behavior baselines
+* Accessibility-focused adaptations
+
+### Phase 3
+
+* Rule editor dashboard
+* AI summarization (optional)
+* Cross-site adaptation profiles
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repo
+2. Create a feature branch
+3. Commit clean, documented code
+4. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT License © AdaptiveWeb
+
+---
+
+## 📬 Contact
+
+For feedback, ideas, or collaboration — open an issue.
+
+---
+
+**AdaptiveWeb — Making the web adapt to humans, not the other way around.** 🌐✨
