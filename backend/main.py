@@ -52,6 +52,51 @@ async def health():
     return {"status": "ok"}
 
 # --- Summarization API ---
+@app.post("/api/suggest")
+async def suggest_content(request: SummarizeRequest):
+    """
+    Generate Summary + Next Actions based on content.
+    """
+    print(f"📥 Suggest Request received: {len(request.text)} chars")
+    if not request.text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    # 1. Generate Summary (Mock)
+    sentences = request.text.split('.')
+    summary_text = ". ".join([s.strip() for s in sentences[:3] if s.strip()]) + "."
+    if len(summary_text) < 10:
+        summary_text = "Content analyzed. See suggestions below."
+
+    # 2. Generate Suggestions (Mock Contextual)
+    suggestions = []
+    text_lower = request.text.lower()
+    
+    if "price" in text_lower or "cost" in text_lower or "plan" in text_lower:
+        suggestions.append("Compare Pricing Plans")
+    if "login" in text_lower or "sign in" in text_lower:
+        suggestions.append("Log In to Account")
+    if "contact" in text_lower or "email" in text_lower or "support" in text_lower:
+        suggestions.append("Contact Support")
+    if "download" in text_lower:
+        suggestions.append("Go to Downloads")
+    if "learn more" in text_lower or "documentation" in text_lower:
+        suggestions.append("Read Documentation")
+    
+    # Defaults if none found
+    if not suggestions:
+        suggestions = ["Search related topics", "Scroll to footer", "Return to Home"]
+    
+    # Cap at 3
+    suggestions = suggestions[:3]
+
+    print(f"📤 Sending Suggestions: {suggestions}")
+    return {
+        "summary": summary_text,
+        "suggestions": suggestions,
+        "method": "mock_context_heuristic"
+    }
+
+# --- Summarization API ---
 @app.post("/api/summarize")
 async def summarize_content(request: SummarizeRequest):
     """

@@ -300,8 +300,31 @@
 
         onCursorHesitation(coords) {
             console.log('Detected: Cursor Hesitation');
-            this.ui.showSuggestion(coords);
+            this.ui.showSuggestion(coords, () => this.onManualHelp());
             this.logEvent('hesitation', { x: coords.x, y: coords.y });
+        }
+
+        async onManualHelp() {
+            console.log('User accepted help');
+            this.logEvent('help_accepted');
+
+            const text = this.getCurrentSectionText();
+            this.ui.showSummary("Analyzing for suggestions...", true);
+
+            try {
+                const res = await fetch(`${this.API_URL}/suggest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                if (data.summary) {
+                    this.ui.updateSummaryContent(data.summary, data.suggestions);
+                }
+            } catch (e) {
+                console.error("Help action failed", e);
+                this.ui.updateSummaryContent("Could not analyze page content: " + e.message);
+            }
         }
     }
 
@@ -349,10 +372,21 @@
             this.currentSummaryBox = box;
         }
 
-        updateSummaryContent(newText) {
+        updateSummaryContent(newText, suggestions = []) {
             if (this.currentSummaryBox) {
                 const contentDiv = this.currentSummaryBox.querySelector('.aw-summary-content');
-                if (contentDiv) contentDiv.innerHTML = newText;
+
+                let html = newText;
+                if (suggestions && suggestions.length > 0) {
+                    html += '<div class="aw-suggestions-title">Suggested Actions:</div>';
+                    html += '<div class="aw-suggestions-list">';
+                    suggestions.forEach(s => {
+                        html += `<button class="aw-suggestion-chip">${s}</button>`;
+                    });
+                    html += '</div>';
+                }
+
+                if (contentDiv) contentDiv.innerHTML = html;
             }
         }
 
@@ -386,42 +420,63 @@
             });
         }
 
-        showSuggestion(coords) {
+        showSuggestion(coords, onAction) {
             if (document.querySelector('.aw-suggestion-bubble')) return;
 
             const bubble = document.createElement('div');
             bubble.className = 'aw-suggestion-bubble';
             bubble.innerHTML = `
         <div class="aw-suggestion-arrow"></div>
-        Need help finding something?
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span>Need help?</span>
+            <button class="aw-help-btn" style="background:white; color:#2196F3; border:none; border-radius:4px; padding:4px 10px; cursor:pointer; font-weight:bold; font-size:12px;">Summarize</button>
+        </div>
       `;
-            bubble.style.left = (coords.x + 15) + 'px';
-            bubble.style.top = (coords.y + 15) + 'px';
 
             document.body.appendChild(bubble);
 
-            // Ensure position is absolute relative to document if we used pageX? 
-            // Coords from mouse event clientX need scroll offset for absolute positioning
+            // Ensure position is absolute relative to document
             bubble.style.left = (coords.x + window.scrollX + 15) + 'px';
             bubble.style.top = (coords.y + window.scrollY + 15) + 'px';
 
+            // Add click listener
+            const btn = bubble.querySelector('.aw-help-btn');
+            if (btn && onAction) {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    onAction();
+                    this.dismissSuggestion(bubble);
+                };
+            }
+
             requestAnimationFrame(() => bubble.classList.add('aw-visible'));
 
-            setTimeout(() => {
-                bubble.classList.remove('aw-visible');
-                setTimeout(() => bubble.remove(), 300);
-            }, 5000);
+            // Auto dismiss timer
+            const autoDismiss = setTimeout(() => {
+                this.dismissSuggestion(bubble);
+            }, 8000);
 
-            // Dismiss on purposeful movement
+            // Dismiss on purposeful movement away
             const checkMove = (e) => {
+                if (bubble.contains(e.target)) return;
+
                 const dist = Math.hypot(e.clientX - coords.x, e.clientY - coords.y);
-                if (dist > 100) {
-                    bubble.classList.remove('aw-visible');
-                    setTimeout(() => bubble.remove(), 300);
+                if (dist > 150) {
+                    clearTimeout(autoDismiss);
+                    this.dismissSuggestion(bubble);
                     window.removeEventListener('mousemove', checkMove);
                 }
             };
             window.addEventListener('mousemove', checkMove);
+
+            // Cleanup event listener if bubble is removed
+            bubble.dataset.listenerAttached = 'true';
+        }
+
+        dismissSuggestion(bubble) {
+            if (!bubble) return;
+            bubble.classList.remove('aw-visible');
+            setTimeout(() => bubble.remove(), 300);
         }
     }
 
