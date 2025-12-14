@@ -7,6 +7,7 @@ import asyncio
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
+import hashlib
 
 # --- Configuration ---
 load_dotenv()
@@ -26,6 +27,7 @@ USE_MOCK_DB = False
 async def lifespan(app: FastAPI):
     global USE_MOCK_DB
     # Startup
+    print("🚀 Backend Starting...")
     try:
         await db.connect_db()
         # Test connection
@@ -131,7 +133,6 @@ RESPONSE_CACHE = {}
 
 def get_cached_response(text: str, prefix: str):
     """Simple in-memory cache to avoid hitting Gemini for same content."""
-    import hashlib
     hash_key = f"{prefix}:{hashlib.md5(text.encode()).hexdigest()}"
     return hash_key, RESPONSE_CACHE.get(hash_key)
 
